@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ekspor Komentar TikTok</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo-wrap">
+        <div class="logo-icon">
+          <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" width="28" height="28">
+            <path d="M34 4h-6v26a6 6 0 1 1-6-6v-6a12 12 0 1 0 12 12V18a20 20 0 0 0 12 4v-6a14 14 0 0 1-12-12z" fill="url(#tiktok-grad)"/>
+            <defs>
+              <linearGradient id="tiktok-grad" x1="4" y1="4" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#69C9D0"/>
+                <stop offset="100%" stop-color="#EE1D52"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="title-wrap">
+          <h1 class="title">TikTok<span class="title-accent">Eksport</span></h1>
+          <p class="subtitle">Pengekspor Komentar</p>
+        </div>
+      </div>
+      <div class="badge" id="statusBadge">Siap</div>
+    </div>
+
+    <!-- Divider -->
+    <div class="divider"></div>
+
+    <!-- Info Cards -->
+    <div class="info-cards">
+      <div class="info-card">
+        <div class="info-icon">💬</div>
+        <div class="info-text">
+          <span class="info-label">Format</span>
+          <span class="info-value">CSV (Excel)</span>
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="info-icon">🔄</div>
+        <div class="info-text">
+          <span class="info-label">Mode</span>
+          <span class="info-value" id="modeLabel">Auto-Scroll</span>
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="info-icon">📦</div>
+        <div class="info-text">
+          <span class="info-label">Encoding</span>
+          <span class="info-value">UTF-8 BOM</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toggle Autoscroll -->
+    <div class="toggle-row" id="toggleRow">
+      <div class="toggle-info">
+        <span class="toggle-label">Auto-Scroll</span>
+        <span class="toggle-desc">Scroll otomatis untuk memuat lebih banyak komentar</span>
+      </div>
+      <label class="toggle-switch" title="Aktifkan/nonaktifkan auto-scroll">
+        <input type="checkbox" id="autoScrollToggle" checked />
+        <span class="toggle-thumb"></span>
+      </label>
+    </div>
+
+    <!-- Status Area -->
+    <div class="status-area" id="statusArea">
+      <div class="status-icon">🎯</div>
+      <p class="status-text" id="statusText">Buka halaman video TikTok, lalu klik tombol di bawah untuk mulai mengekspor komentar.</p>
+    </div>
+
+    <!-- Progress Bar (hidden by default) -->
+    <div class="progress-wrap" id="progressWrap" style="display:none;">
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <span class="progress-label" id="progressLabel">Memulai...</span>
+    </div>
+
+    <!-- Action Button -->
+    <button class="btn-export" id="exportBtn">
+      <span class="btn-icon">⬇️</span>
+      <span class="btn-text">Mulai Ekspor Komentar</span>
+      <div class="btn-shine"></div>
+    </button>
+
+    <!-- Footer -->
+    <div class="footer">
+      <span>Hanya berfungsi di <strong>tiktok.com</strong></span>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

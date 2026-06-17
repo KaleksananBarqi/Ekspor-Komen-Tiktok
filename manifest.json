@@ -5,7 +5,8 @@
   "description": "Mengekspor semua komentar TikTok beserta balasannya ke format CSV dengan satu klik.",
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "downloads"
   ],
   "host_permissions": [
     "*://*.tiktok.com/*"
@@ -14,6 +15,7 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_title": "Ekspor Komentar"
+    "default_title": "Ekspor Komentar",
+    "default_popup": "popup.html"
   }
 }
