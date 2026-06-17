@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Ekspor Komentar TikTok",
+  "version": "1.0",
+  "description": "Mengekspor semua komentar TikTok beserta balasannya ke format CSV dengan satu klik.",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "*://*.tiktok.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Ekspor Komentar"
+  }
+}
