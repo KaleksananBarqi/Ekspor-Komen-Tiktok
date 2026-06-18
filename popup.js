@@ -11,13 +11,25 @@ const autoScrollToggle = document.getElementById('autoScrollToggle');
 const modeLabel        = document.getElementById('modeLabel');
 
 // =============================================
-// Update label Mode sesuai state toggle
+// Muat setting tersimpan dari chrome.storage.local
+// =============================================
+chrome.storage.local.get(['autoScroll'], (result) => {
+  // Default: true (auto-scroll aktif) jika belum pernah disimpan
+  autoScrollToggle.checked = result.autoScroll !== undefined ? result.autoScroll : true;
+  updateModeLabel();
+});
+
+// =============================================
+// Update label Mode sesuai state toggle & simpan ke storage
 // =============================================
 function updateModeLabel() {
   modeLabel.textContent = autoScrollToggle.checked ? 'Auto-Scroll' : 'Manual';
 }
-autoScrollToggle.addEventListener('change', updateModeLabel);
-updateModeLabel(); // inisialisasi
+autoScrollToggle.addEventListener('change', () => {
+  chrome.storage.local.set({ autoScroll: autoScrollToggle.checked });
+  updateModeLabel();
+});
+updateModeLabel(); // inisialisasi awal (sebelum storage selesai load)
 
 // =============================================
 // Helper UI

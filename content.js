@@ -227,7 +227,8 @@ async function tiktokExporterMain({ autoScroll = true } = {}) {
           text.includes('balasan') ||
           text.includes('reply') ||
           text.includes('replies') ||
-          text.includes('lihat')
+          text.includes('lihat') ||
+          text.includes('view')
         );
       });
 
@@ -235,7 +236,15 @@ async function tiktokExporterMain({ autoScroll = true } = {}) {
         validReplyBtns.forEach((btn) => {
           try { btn.click(); } catch (e) {}
         });
-        await delay(1000);
+        // Tunggu lebih lama agar DOM sempat render reply yang baru dimuat
+        await delay(1500);
+
+        // Scroll sedikit di container komentar agar reply baru ter-render
+        const commentContainersAfterClick = getCommentScrollContainers();
+        commentContainersAfterClick.forEach((el) => {
+          el.scrollBy(0, 500);
+        });
+        await delay(800);
       }
 
       // Hitung ketinggian total untuk deteksi stuck
@@ -272,63 +281,74 @@ async function tiktokExporterMain({ autoScroll = true } = {}) {
   }
 
   // =============================================
-  // 5. EKSTRAKSI DATA KOMENTAR
+  // 5. EKSTRAKSI DATA KOMENTAR (Dual-Pass)
   // =============================================
   updateOverlay('Mengekstrak data...', 'Memproses semua node komentar yang ditemukan', 75);
   sendMsg('progress', { percent: 75, text: 'Mengekstrak data komentar...' });
   await delay(500);
 
   /**
-   * Strategi selector berbasis HEURISTIK DOM.
-   * Karena TikTok sering mengubah nama class dan atribut, kita mencari secara struktural:
-   * 1. Temukan elemen username (selalu berupa link 'a' dengan href mengandung '/@')
-   * 2. Temukan kontainer pembungkusnya
-   * 3. Cari teks terpanjang di dalam kontainer yang bukan merupakan nama atau waktu.
+   * Strategi DUAL-PASS EXTRACTION:
+   *
+   * PASS 1 — Container-first:
+   *   Cari semua container komentar individual (level-1 DAN level-2/reply)
+   *   via selector spesifik TikTok. Ini memastikan reply yang bersarang
+   *   di dalam komentar induk tetap terambil sebagai entri terpisah.
+   *
+   * PASS 2 — Fallback heuristik (link profil):
+   *   Scan semua a[href*="/@"] yang BELUM tercakup oleh Pass 1.
+   *   Ini menjaga backward compatibility jika DOM TikTok berubah.
    */
 
   const seen = new Set();
   const rows = [['Nama User', 'Komentar', 'Waktu', 'Tipe']];
+  const processedNodes = new WeakSet(); // Track container yang sudah diproses
 
   const panels = getCommentScrollContainers();
   const commentPanel = panels.length > 0 ? panels[0] : document;
 
-  // Temukan semua link profil pengguna
-  const userLinks = Array.from(commentPanel.querySelectorAll('a[href*="/@"]'));
-
-  userLinks.forEach((link) => {
+  /**
+   * Helper: Ekstrak data dari satu container komentar.
+   * @param {HTMLElement} container - Container komentar individual
+   * @param {string} forceTipe - Paksa tipe ('Balasan' atau 'Komentar'), atau null untuk auto-detect
+   * @returns {boolean} true jika berhasil diekstrak
+   */
+  function extractFromContainer(container, forceTipe = null) {
     try {
-      // Abaikan jika ini hanya avatar tanpa teks nama
-      const usernameRaw = (link.innerText || link.textContent || '').trim();
-      if (!usernameRaw) return;
+      if (processedNodes.has(container)) return false;
 
-      // Naik perlahan untuk mencari div container yang menampung 1 komentar utuh
-      // Biasanya berada 2-4 level di atas elemen <a>
-      let node = link.parentElement;
-      for (let i = 0; i < 5; i++) {
-        if (node && node.tagName === 'DIV' && (node.innerText || '').length > usernameRaw.length) {
-          break; // Ketemu kandidat pembungkus komentar
-        }
-        if (node && node.parentElement) node = node.parentElement;
-      }
-
-      if (!node) return;
+      // -- Ekstrak Username --
+      const userLink = container.querySelector('a[href*="/@"]');
+      if (!userLink) return false;
+      const usernameRaw = (userLink.innerText || userLink.textContent || '').trim();
+      if (!usernameRaw) return false;
 
       // -- Ekstrak Komentar --
-      let textEl = node.querySelector(
-        'p[data-e2e="comment-level-1"], p[data-e2e="comment-level-2"], [class*="CommentText"]'
+      let textEl = container.querySelector(
+        'p[data-e2e="comment-level-1"], p[data-e2e="comment-level-2"], ' +
+        '[class*="CommentText"], [class*="comment-text"]'
       );
-      
+
       let text = '';
       if (textEl) {
         text = (textEl.innerText || textEl.textContent || '').trim();
       } else {
-        // Fallback Heuristik: Cari tag p atau span di dalam container yang berisi teks paling banyak
-        const candidates = Array.from(node.querySelectorAll('p, span'));
+        // Fallback Heuristik: Cari tag p atau span dengan teks terpanjang
+        const candidates = Array.from(container.querySelectorAll('p, span'));
         let longest = '';
         candidates.forEach(el => {
           const t = (el.innerText || el.textContent || '').trim();
-          // Filter teks agar tidak sama dengan nama user, angka like, atau tombol Balas
-          if (t.length > longest.length && t !== usernameRaw && !t.includes('Balas') && !t.includes('Reply')) {
+          if (
+            t.length > longest.length &&
+            t !== usernameRaw &&
+            !t.includes('Balas') &&
+            !t.includes('Reply') &&
+            !t.includes('replies') &&
+            !t.includes('balasan') &&
+            !t.includes('View') &&
+            !t.includes('Lihat') &&
+            !t.includes('Hide')
+          ) {
             longest = t;
           }
         });
@@ -336,26 +356,46 @@ async function tiktokExporterMain({ autoScroll = true } = {}) {
       }
 
       // -- Ekstrak Waktu --
-      const timeEl = node.querySelector('time, [class*="time"], [class*="CreatedTime"]');
+      const timeEl = container.querySelector('time, [class*="time"], [class*="CreatedTime"]');
       let time = timeEl ? (timeEl.innerText || timeEl.textContent || timeEl.getAttribute('datetime') || '').trim() : '';
-      
+
       if (!time) {
-        // Fallback Heuristik Waktu: Cari span yang berisi teks relatif seperti "1h ago", "1 hari", dll.
-        const spanT = Array.from(node.querySelectorAll('span')).find(s => {
+        const spanT = Array.from(container.querySelectorAll('span')).find(s => {
           const txt = (s.innerText || '').trim().toLowerCase();
-          return txt.includes('ago') || txt.includes('hari') || txt.includes('jam') || txt.includes('menit') || /^(just now|\d+[mhdw] ago|\d+-\d+)$/.test(txt);
+          return txt.includes('ago') || txt.includes('hari') || txt.includes('jam') ||
+                 txt.includes('menit') || /^(just now|\d+[mhdw] ago|\d+-\d+)$/.test(txt);
         });
         if (spanT) time = (spanT.innerText || '').trim();
       }
 
-      if (!text || text === usernameRaw) return; // Jika tidak ada teks komentar, lewati
+      if (!text || text === usernameRaw) return false;
 
-      // Tentukan tipe apakah ini balasan
-      const isReply = (node.innerHTML && node.innerHTML.includes('data-e2e="comment-level-2"')) || 
-                      (node.className && typeof node.className === 'string' && node.className.toLowerCase().includes('reply'));
-      const tipe = isReply ? 'Balasan' : 'Komentar';
+      // -- Tentukan Tipe (Komentar / Balasan) --
+      let tipe = 'Komentar';
+      if (forceTipe) {
+        tipe = forceTipe;
+      } else {
+        // Deteksi reply berdasarkan atribut, class, atau posisi dalam DOM
+        const isLevel2 = container.matches && (
+          container.matches('[data-e2e="comment-level-2"]') ||
+          container.matches('[class*="ReplyItem"]') ||
+          container.matches('[class*="reply-item"]') ||
+          container.matches('[class*="ReplyContainer"]')
+        );
+        const hasLevel2Attr = container.querySelector('[data-e2e="comment-level-2"]');
+        const classHasReply = container.className && typeof container.className === 'string' &&
+                              container.className.toLowerCase().includes('reply');
+        // Cek apakah container ini berada DI DALAM komentar level-1 (tanda pasti reply)
+        const insideLevel1 = container.closest &&
+          container.closest('[data-e2e="comment-level-1"]') !== null &&
+          !container.matches('[data-e2e="comment-level-1"]');
 
-      // Escape karakter CSV
+        if (isLevel2 || hasLevel2Attr || classHasReply || insideLevel1) {
+          tipe = 'Balasan';
+        }
+      }
+
+      // -- Escape CSV & Deduplikasi --
       let usernameSafe = usernameRaw.replace(/"/g, '""');
       let textSafe     = text.replace(/"/g, '""').replace(/\n/g, ' ');
       let timeSafe     = time.replace(/"/g, '""');
@@ -365,8 +405,73 @@ async function tiktokExporterMain({ autoScroll = true } = {}) {
         seen.add(key);
         rows.push([`"${usernameSafe}"`, `"${textSafe}"`, `"${timeSafe}"`, `"${tipe}"`]);
       }
+
+      processedNodes.add(container);
+      return true;
     } catch (e) {
-      console.warn('[TikTok Exporter] Error parsing heuristik:', e);
+      console.warn('[TikTok Exporter] Error parsing container:', e);
+      return false;
+    }
+  }
+
+  // ─── PASS 1: Container-first (prioritas tinggi) ───
+  // Cari semua container komentar individual, termasuk reply level-2
+  const containerSelectors = [
+    '[data-e2e="comment-level-2"]',  // Reply — proses duluan agar tidak tertimpa parent
+    '[data-e2e="comment-level-1"]',  // Komentar utama
+    '[class*="DivCommentItemContainer"]',
+    '[class*="CommentItemWrapper"]',
+    '[class*="comment-item-wrapper"]',
+    '[class*="comment-item"]',
+  ];
+
+  // Proses reply (level-2) terlebih dahulu
+  const level2Containers = Array.from(
+    commentPanel.querySelectorAll(
+      '[data-e2e="comment-level-2"], [class*="ReplyItem"], [class*="reply-item"], [class*="ReplyContainer"]'
+    )
+  );
+  level2Containers.forEach((container) => {
+    extractFromContainer(container, 'Balasan');
+  });
+
+  // Lalu proses semua container komentar (level-1 dan sisa yang belum tercakup)
+  const allContainers = Array.from(
+    commentPanel.querySelectorAll(containerSelectors.join(', '))
+  );
+  allContainers.forEach((container) => {
+    // Skip jika sudah diproses di level-2
+    if (processedNodes.has(container)) return;
+    extractFromContainer(container);
+  });
+
+  console.log(`[TikTok Exporter] Pass 1 (container): ${rows.length - 1} komentar ditemukan`);
+
+  // ─── PASS 2: Fallback heuristik via link profil ───
+  // Tangkap komentar yang mungkin terlewat oleh Pass 1
+  const userLinks = Array.from(commentPanel.querySelectorAll('a[href*="/@"]'));
+
+  userLinks.forEach((link) => {
+    try {
+      const usernameRaw = (link.innerText || link.textContent || '').trim();
+      if (!usernameRaw) return;
+
+      // Naik ke parent untuk menemukan container komentar
+      let node = link.parentElement;
+      for (let i = 0; i < 5; i++) {
+        if (node && node.tagName === 'DIV' && (node.innerText || '').length > usernameRaw.length) {
+          break;
+        }
+        if (node && node.parentElement) node = node.parentElement;
+      }
+
+      if (!node) return;
+      // Skip jika container ini sudah diproses oleh Pass 1
+      if (processedNodes.has(node)) return;
+
+      extractFromContainer(node);
+    } catch (e) {
+      console.warn('[TikTok Exporter] Error parsing heuristik (fallback):', e);
     }
   });
 
