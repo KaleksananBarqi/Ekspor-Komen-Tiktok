@@ -6,11 +6,13 @@ Ekstensi peramban (browser extension) sederhana untuk Google Chrome dan Brave ya
 
 ## 🚀 Fitur Utama
 * **Ekspor 1-Klik:** Cukup klik ikon ekstensi di toolbar browser Anda.
-* **Auto-Scroll Otomatis:** Ekstensi akan menggulir halaman secara otomatis ke bawah untuk memuat komentar baru (lazy load) dan mengklik tombol balasan jika ada.
+* **Auto-Scroll Otomatis & Cerdas:** Ekstensi akan menggulir halaman secara otomatis ke bawah untuk memuat komentar baru (lazy load) dan mendeteksi serta memuat balasan (replies).
+* **Persistensi Pilihan Mode:** Setelan auto-scroll atau manual disimpan secara otomatis ke dalam penyimpanan browser (`chrome.storage.local`), sehingga preferensi Anda tetap terjaga saat popup dibuka kembali.
 * **Data yang Diekspor:**
   * Nama User (Username)
   * Isi Komentar (termasuk emoji)
   * Waktu Komentar
+  * Tipe (apakah berupa "Komentar" utama atau "Balasan")
 * **Format Output Excel-Friendly:** Menggunakan UTF-8 BOM agar emoji dan karakter khusus terbaca dengan rapi saat file `.csv` dibuka di Microsoft Excel atau Google Sheets.
 
 ---
