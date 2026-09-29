@@ -68,6 +68,7 @@ exportBtn.addEventListener('click', async () => {
 
   exportBtn.disabled = true;
   exportBtn.querySelector('.btn-text').textContent = 'Sedang Berjalan...';
+  exportBtn.querySelector('.btn-icon').textContent = '⏳';
   setStatus(
     'loading', '⏳',
     autoScroll
@@ -117,6 +118,7 @@ exportBtn.addEventListener('click', async () => {
         );
         exportBtn.disabled = false;
         exportBtn.querySelector('.btn-text').textContent = 'Ekspor Lagi';
+        exportBtn.querySelector('.btn-icon').textContent = '🔄';
         chrome.runtime.onMessage.removeListener(listener);
       } else if (message.type === 'error') {
         setProgress(0, 'Gagal');
@@ -124,6 +126,7 @@ exportBtn.addEventListener('click', async () => {
         setStatus('error', '❌', message.text, 'Error');
         exportBtn.disabled = false;
         exportBtn.querySelector('.btn-text').textContent = 'Coba Lagi';
+        exportBtn.querySelector('.btn-icon').textContent = '🔄';
         chrome.runtime.onMessage.removeListener(listener);
       }
     });
@@ -136,6 +139,7 @@ exportBtn.addEventListener('click', async () => {
     );
     exportBtn.disabled = false;
     exportBtn.querySelector('.btn-text').textContent = 'Coba Lagi';
+    exportBtn.querySelector('.btn-icon').textContent = '🔄';
     progressWrap.style.display = 'none';
   }
 });

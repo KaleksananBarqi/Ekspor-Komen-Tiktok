@@ -62,20 +62,20 @@
     </div>
 
     <!-- Toggle Autoscroll -->
-    <div class="toggle-row" id="toggleRow">
+    <label class="toggle-row" id="toggleRow" for="autoScrollToggle">
       <div class="toggle-info">
-        <span class="toggle-label">Auto-Scroll</span>
-        <span class="toggle-desc">Scroll otomatis untuk memuat lebih banyak komentar</span>
+        <span class="toggle-label" id="toggleLabel">Auto-Scroll</span>
+        <span class="toggle-desc" id="toggleDesc">Scroll otomatis untuk memuat lebih banyak komentar</span>
       </div>
-      <label class="toggle-switch" title="Aktifkan/nonaktifkan auto-scroll">
-        <input type="checkbox" id="autoScrollToggle" />
-        <span class="toggle-thumb"></span>
-      </label>
-    </div>
+      <span class="toggle-switch" title="Aktifkan/nonaktifkan auto-scroll">
+        <input type="checkbox" id="autoScrollToggle" aria-labelledby="toggleLabel" aria-describedby="toggleDesc" />
+        <span class="toggle-thumb" aria-hidden="true"></span>
+      </span>
+    </label>
 
     <!-- Status Area -->
-    <div class="status-area" id="statusArea">
-      <div class="status-icon">🎯</div>
+    <div class="status-area" id="statusArea" role="status" aria-live="polite">
+      <div class="status-icon" aria-hidden="true">🎯</div>
       <p class="status-text" id="statusText">Buka halaman video TikTok, lalu klik tombol di bawah untuk mulai mengekspor komentar.</p>
     </div>
 
