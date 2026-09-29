@@ -396,9 +396,16 @@ async function tiktokExporterMain({ autoScroll = true } = {}) {
       }
 
       // -- Escape CSV & Deduplikasi --
-      let usernameSafe = usernameRaw.replace(/"/g, '""');
-      let textSafe     = text.replace(/"/g, '""').replace(/\n/g, ' ');
-      let timeSafe     = time.replace(/"/g, '""');
+      const sanitizeCSV = (str) => {
+        if (/^[=+\-@\t\r]/.test(str)) {
+          return "'" + str;
+        }
+        return str;
+      };
+
+      let usernameSafe = sanitizeCSV(usernameRaw).replace(/"/g, '""');
+      let textSafe     = sanitizeCSV(text).replace(/"/g, '""').replace(/\n/g, ' ');
+      let timeSafe     = sanitizeCSV(time).replace(/"/g, '""');
 
       const key = `${usernameSafe}||${textSafe}`;
       if (!seen.has(key)) {
